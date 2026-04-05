@@ -1,0 +1,112 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import StatsBar from '@/components/layout/StatsBar';
+import DayTaskList from '@/components/tasks/DayTaskList';
+import StatsCharts from '@/components/dashboard/StatsCharts';
+import { today } from '@/lib/utils';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+
+const pb = Astro.locals.pb;
+const user = Astro.locals.user;
+const userId = user.id;
+const todayStr = today();
+
+// Auto-generate recurring tasks for today (idempotent — skips if already done)
+try {
+  const todayDOW = new Date(todayStr + 'T12:00:00').getDay();
+  const templates = await pb.collection('recurring_templates').getFullList({
+    filter: `is_active = true`,
+  });
+  for (const tpl of templates) {
+    if (tpl.last_generated_date === todayStr) continue;
+    const allowedDays: number[] = (tpl.days ?? '0,1,2,3,4,5,6')
+      .split(',').map((d: string) => parseInt(d.trim())).filter((d: number) => !isNaN(d));
+    if (!allowedDays.includes(todayDOW)) continue;
+    let subtaskTemplates: { title: string; points_value: number }[] = [];
+    try { subtaskTemplates = JSON.parse(tpl.subtask_templates || '[]'); } catch {}
+    const existing = await pb.collection('tasks').getFullList({
+      filter: `user = "${userId}" && date = "${todayStr}"`,
+    });
+    const task = await pb.collection('tasks').create({
+      user: userId, title: tpl.title, description: tpl.description ?? '',
+      category: tpl.category ?? 'other', date: todayStr,
+      points_value: tpl.points_value ?? 10, status: 'pending', order: existing.length,
+    });
+    for (let i = 0; i < subtaskTemplates.length; i++) {
+      await pb.collection('subtasks').create({
+        task: task.id, title: subtaskTemplates[i].title,
+        points_value: subtaskTemplates[i].points_value, status: 'pending', order: i,
+      });
+    }
+    await pb.collection('recurring_templates').update(tpl.id, { last_generated_date: todayStr });
+  }
+} catch {}
+
+// Fetch today's tasks with subtasks
+const tasks = await pb.collection('tasks').getFullList({
+  filter: `user = "${userId}" && date = "${todayStr}"`,
+  sort: '+order',
+});
+
+const tasksWithSubtasks = await Promise.all(
+  tasks.map(async (task: any) => {
+    const subtasks = await pb.collection('subtasks').getFullList({
+      filter: `task = "${task.id}"`,
+      sort: '+order',
+    });
+    return { ...task, subtasks };
+  })
+);
+
+// Stats
+const completedTasks = tasks.filter((t: any) => t.status === 'completed');
+const allSubtasksToday = tasksWithSubtasks.flatMap((t: any) => t.subtasks);
+const completedSubtasksToday = allSubtasksToday.filter((s: any) => s.status === 'completed');
+const pointsToday = completedSubtasksToday.reduce((sum: number, s: any) => sum + (s.points_value ?? 0), 0);
+
+---
+
+<AppLayout title="Dashboard" wide={true}>
+  <!-- Header (client-side = usa zona horaria del navegador) -->
+  <DashboardHeader client:load username={user.username} />
+
+  <!-- Stats Bar -->
+  <StatsBar
+    client:load
+    streakDays={user.streak_days ?? 0}
+    pointsToday={pointsToday}
+    tasksCompleted={completedTasks.length}
+    tasksTotal={tasks.length}
+    totalPoints={user.total_points ?? 0}
+    level={user.level ?? 1}
+  />
+
+  <!-- Two-column layout: charts left, tasks right -->
+  <div style="display: grid; grid-template-columns: 1fr minmax(420px, 480px); gap: 32px; align-items: start;">
+
+    <!-- Left: Charts -->
+    <div>
+      <StatsCharts client:load />
+    </div>
+
+    <!-- Right: Tasks -->
+    <div style="position: sticky; top: 24px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <h2 style="font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary);">
+          Tareas de hoy
+        </h2>
+        <span style="font-size: 13px; color: var(--text-muted);">
+          {completedTasks.length}/{tasks.length} completadas
+        </span>
+      </div>
+      <div style="max-height: calc(100vh - 220px); overflow-y: auto; padding-right: 4px;">
+        <DayTaskList
+          client:load
+          initialTasks={tasksWithSubtasks}
+          date={todayStr}
+        />
+      </div>
+    </div>
+
+  </div>
+</AppLayout>

@@ -1,0 +1,46 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import HistoryClient from '@/components/history/HistoryClient';
+
+const pb = Astro.locals.pb;
+const user = Astro.locals.user;
+const userId = user.id;
+
+const [tasks, subtasks, claims] = await Promise.all([
+  pb.collection('tasks').getFullList({
+    filter: `user = "${userId}" && status = "completed"`,
+    sort: '-completed_at',
+    fields: 'id,date,status,title,points_value,completed_at,category',
+  }),
+  pb.collection('subtasks').getFullList({
+    filter: `task.user = "${userId}" && status = "completed"`,
+    sort: '-completed_at',
+    fields: 'id,points_value,completed_at',
+  }),
+  pb.collection('reward_claims').getFullList({
+    filter: `user = "${userId}"`,
+    fields: 'id,claimed_at',
+  }),
+]);
+---
+
+<AppLayout title="Logros">
+  <div style="margin-bottom: 32px;">
+    <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em;">
+      🏆 Logros
+    </h1>
+    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+      Tu historia de productividad y milestones desbloqueados.
+    </p>
+  </div>
+
+  <HistoryClient
+    client:load
+    tasks={tasks}
+    subtasks={subtasks}
+    claimsCount={claims.length}
+    totalPoints={user.total_points ?? 0}
+    streakDays={user.streak_days ?? 0}
+    level={user.level ?? 1}
+  />
+</AppLayout>

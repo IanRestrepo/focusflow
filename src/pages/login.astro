@@ -1,0 +1,106 @@
+---
+import '@/styles/global.css';
+import { createPBClient } from '@/lib/pocketbase';
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const body = await Astro.request.text();
+    const params = new URLSearchParams(body);
+    const username = params.get('username') ?? '';
+    const password = params.get('password') ?? '';
+
+    const pb = createPBClient();
+    // PocketBase 0.36 uses email as identity field — derive from username
+    const identity = username.includes('@') ? username : `${username}@focusflow.app`;
+    const auth = await pb.collection('users').authWithPassword(identity, password);
+
+    // Return redirect manually so Set-Cookie is included in the same response
+    return new Response(null, {
+      status: 302,
+      headers: {
+        'Location': '/',
+        'Set-Cookie': pb.authStore.exportToCookie({ httpOnly: true, secure: false, sameSite: 'Lax', path: '/' }),
+      },
+    });
+  } catch (e: any) {
+    error = 'Usuario o contraseña incorrectos.';
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar sesión — FocusFlow</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg-primary); padding:24px;">
+
+  <div style="width:100%; max-width:400px;">
+    <!-- Logo -->
+    <div style="text-align:center; margin-bottom:32px;">
+      <h1 style="font-size:32px; font-weight:700; letter-spacing:-0.03em; margin:0;">
+        <span style="color:var(--text-primary)">Focus</span><span style="color:var(--accent-primary)">Flow</span>
+      </h1>
+      <p style="color:var(--text-muted); font-size:14px; margin:8px 0 0;">Tu sistema de productividad con recompensas</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card" style="padding:32px;">
+      <h2 style="font-size:18px; font-weight:600; margin:0 0 24px; color:var(--text-primary);">Iniciar sesión</h2>
+
+      {error && (
+        <div style="background:var(--accent-danger-soft); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:10px 14px; margin-bottom:20px; font-size:14px; color:var(--accent-danger);">
+          {error}
+        </div>
+      )}
+
+      <form method="POST" style="display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <label style="font-size:13px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:6px;">
+            Usuario
+          </label>
+          <input
+            class="input"
+            type="text"
+            name="username"
+            placeholder="tu_usuario"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <div>
+          <label style="font-size:13px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:6px;">
+            Contraseña
+          </label>
+          <input
+            class="input"
+            type="password"
+            name="password"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px; font-size:15px; padding:12px;">
+          Entrar
+        </button>
+      </form>
+
+      <div class="divider"></div>
+
+      <p style="text-align:center; font-size:14px; color:var(--text-muted); margin:0;">
+        ¿No tienes cuenta?
+        <a href="/register" style="color:var(--accent-primary); text-decoration:none; font-weight:500;"> Crear cuenta</a>
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

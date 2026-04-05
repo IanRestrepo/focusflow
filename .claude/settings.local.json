@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/ianrestrepo/.nvm/**)",
+      "Bash(export PATH=\"/usr/local/bin:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(npx astro:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:4321/login)",
+      "Bash(node_modules/.bin/astro --version)",
+      "Bash(node -e \"const pkg=require\\(''./node_modules/astro/package.json''\\); console.log\\(''astro:'', pkg.version\\); const vite=require\\(''./node_modules/vite/package.json''\\); console.log\\(''vite:'', vite.version\\);\")",
+      "Bash(timeout 12 node node_modules/.bin/astro dev --verbose)",
+      "Bash(timeout 15 node node_modules/.bin/astro dev)",
+      "Bash(curl -s http://127.0.0.1:4321/ -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://127.0.0.1:8091/api/health)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(/opt/homebrew/bin/npm --version)",
+      "Bash(curl -s -X POST http://127.0.0.1:8091/api/collections/_superusers/auth-with-password -H \"Content-Type: application/json\" -d '{\"\"\"\"identity\"\"\"\":\"\"\"\"ian@radixllc.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"focusflow2024!\"\"\"\"}')",
+      "Bash(./pocketbase superuser:*)",
+      "Bash(sqlite3 \"/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/backend/pb_data/data.db\" \"SELECT listRule, viewRule FROM _collections WHERE name=''tasks'';\")",
+      "Bash(sqlite3 \"/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/backend/pb_data/data.db\" \"SELECT c.name, c.listRule FROM _collections c WHERE c.name IN \\(''tasks'',''recurring_templates''\\);\")",
+      "Bash(sqlite3 \"/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/backend/pb_data/data.db\" \".schema tasks\")",
+      "Bash(pnpm add:*)",
+      "Bash(node -e \"require\\(''''/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/node_modules/recharts/package.json''''\\).version\")",
+      "Bash(/usr/local/bin/npm install:*)",
+      "Bash(ls /opt/homebrew/bin/node /Users/ianrestrepo/.nvm/versions/node/*/bin/node)",
+      "Bash(/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/npm/bin/npm-cli.js install recharts)",
+      "Bash(/usr/bin/sqlite3 \"/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/backend/pb_data/data.db\" \"SELECT fields FROM _collections WHERE name=''''users'''';\")",
+      "Bash(/usr/bin/sqlite3 \"/Users/ianrestrepo/Documents/Radix LLC/FocusFlow/backend/pb_data/data.db\" \"SELECT name, listRule, viewRule, createRule, updateRule, deleteRule FROM _collections WHERE name=''users'';\")",
+      "Bash(/usr/bin/sqlite3 \"/Users/ianrestrepo/Documents/Radix:*)",
+      "Bash(/opt/homebrew/lib/node_modules/npm/bin/npm-cli.js install:*)"
+    ]
+  }
+}

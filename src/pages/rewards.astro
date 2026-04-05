@@ -1,0 +1,45 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import RewardsClient from '@/components/rewards/RewardsClient';
+import { getPBFromRequest } from '@/lib/pocketbase';
+import { getRewardPhase, PHASE_CONFIGS, getNextClaimAt, countClaimsInWindow, getPremiumBonusStatus } from '@/lib/rewards';
+
+const pb = Astro.locals.pb;
+const user = Astro.locals.user;
+const userId = user.id;
+
+const [rewards, claims] = await Promise.all([
+  pb.collection('rewards').getFullList({ filter: `user = "${userId}" && is_active = true`, sort: 'cost' }),
+  pb.collection('reward_claims').getFullList({ sort: '-claimed_at', expand: 'reward' }),
+]);
+
+const phase  = getRewardPhase(user.created, user.streak_days ?? 0);
+const config = PHASE_CONFIGS[phase];
+const nextClaimAt    = getNextClaimAt(claims, config);
+const claimsToday    = countClaimsInWindow(claims, 24);
+const bonus          = phase === 3 ? getPremiumBonusStatus(claims) : { available: false, nextAt: null };
+---
+
+<AppLayout title="Recompensas">
+  <div style="margin-bottom: 32px;">
+    <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em;">
+      🎁 Recompensas
+    </h1>
+    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+      Gasta tus puntos en algo que mereces.
+    </p>
+  </div>
+
+  <RewardsClient
+    client:load
+    initialRewards={rewards}
+    initialCurrentPoints={user.current_points ?? 0}
+    initialClaims={claims}
+    phase={phase}
+    phaseConfig={config}
+    initialNextClaimAt={nextClaimAt?.toISOString() ?? null}
+    initialClaimsToday={claimsToday}
+    premiumBonusAvailable={bonus.available}
+    premiumBonusNextAt={bonus.nextAt?.toISOString() ?? null}
+  />
+</AppLayout>

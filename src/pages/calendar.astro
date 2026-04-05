@@ -1,0 +1,39 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import CalendarClient from '@/components/timeline/CalendarClient';
+import { today } from '@/lib/utils';
+
+const pb = Astro.locals.pb;
+const userId = Astro.locals.user.id;
+const todayStr = today();
+
+// Fetch all tasks for the user (for calendar coloring)
+const tasks = await pb.collection('tasks').getFullList({
+  filter: `user = "${userId}"`,
+  fields: 'id,date,status,title',
+});
+
+// Fetch all active recurring templates
+const recurringTemplates = await pb.collection('recurring_templates').getFullList({
+  filter: `user = "${userId}" && is_active = true`,
+  fields: 'id,title,category,days,points_value,subtask_templates',
+});
+---
+
+<AppLayout title="Calendario">
+  <div style="margin-bottom: 32px;">
+    <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em;">
+      📅 Calendario
+    </h1>
+    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+      Vista de tu progreso semanal y mensual.
+    </p>
+  </div>
+
+  <CalendarClient
+    client:load
+    tasks={tasks}
+    recurringTemplates={recurringTemplates}
+    today={todayStr}
+  />
+</AppLayout>

@@ -1,0 +1,24 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import CommunityClient from '@/components/community/CommunityClient';
+
+const user = Astro.locals.user;
+const isPublic = user.is_public !== false; // default true if field not yet set
+---
+
+<AppLayout title="Comunidad">
+  <div style="margin-bottom: 32px; text-align: center;">
+    <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em;">
+      🌍 Comunidad
+    </h1>
+    <p style="color: var(--text-muted); margin: 0; font-size: 14px;">
+      Compite y motívate con otros usuarios. Ve quién tiene la racha más larga.
+    </p>
+  </div>
+
+  <CommunityClient
+    client:load
+    currentUserId={user.id}
+    currentUserIsPublic={isPublic}
+  />
+</AppLayout>

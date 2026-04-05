@@ -1,0 +1,135 @@
+---
+import '@/styles/global.css';
+import Sidebar from '@/components/layout/Sidebar';
+import UserMenu from '@/components/layout/UserMenu';
+import { ViewTransitions } from 'astro:transitions';
+
+const { title = 'FocusFlow', fullscreen = false, wide = false } = Astro.props;
+const user = Astro.locals.user;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — FocusFlow</title>
+    <meta name="description" content="Sistema de productividad con recompensas dopaminérgicas" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <ViewTransitions />
+    <!-- Anti-flash: aplica tema y acento en cada navegación, sidebar SOLO en primera carga -->
+    <script is:inline>
+      // Tema + acento: se re-aplica en cada navegación (View Transitions resetea <html>)
+      function applyThemeAccent() {
+        try {
+          var html = document.documentElement;
+          var t = localStorage.getItem('ff_theme');
+          var a = localStorage.getItem('ff_accent');
+          if (t && t !== 'obsidian') html.setAttribute('data-theme', t);
+          else html.removeAttribute('data-theme');
+          if (a && a !== 'amber') html.setAttribute('data-accent', a);
+          else html.removeAttribute('data-accent');
+        } catch(e) {}
+      }
+
+      // Primera carga: también pre-colapsar sidebar antes de que React hidrate
+      applyThemeAccent();
+      try {
+        if (localStorage.getItem('ff_sidebar_collapsed') === 'true') {
+          document.documentElement.classList.add('sidebar-pre-collapsed');
+        }
+      } catch(e) {}
+
+      // Navegaciones posteriores: solo tema/acento — React (transition:persist) ya controla el sidebar
+      document.addEventListener('astro:after-swap', applyThemeAccent);
+    </script>
+  </head>
+  <body>
+    <Sidebar
+      client:load
+      transition:persist
+      transition:name="sidebar"
+      username={user?.username ?? ''}
+      totalPoints={user?.total_points ?? 0}
+      currentPoints={user?.current_points ?? 0}
+      level={user?.level ?? 1}
+      streakDays={user?.streak_days ?? 0}
+      currentPath={Astro.url.pathname}
+    />
+    <main class={`main-content${fullscreen ? ' main-content--fullscreen' : ''}`} id="main-content" transition:animate="fade">
+      <div class={`content-area${fullscreen ? ' content-area--fullscreen' : ''}${wide ? ' content-area--wide' : ''}`}>
+        <slot />
+      </div>
+    </main>
+
+    <UserMenu
+      client:load
+      transition:persist
+      transition:name="user-menu"
+      username={user?.username ?? '?'}
+      level={user?.level ?? 1}
+      currentPoints={user?.current_points ?? 0}
+      streakDays={user?.streak_days ?? 0}
+      currentPath={Astro.url.pathname}
+    />
+
+    <!-- Toast container (global) -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Level up overlay (global) -->
+    <div id="level-up-overlay" class="level-up-overlay" style="display:none;"></div>
+
+    <script>
+      // Global toast helper
+      (window as any).showToast = function(message: string, type: 'success' | 'info' | 'warning' = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+
+        const icons: Record<string, string> = {
+          success: '✅',
+          info: 'ℹ️',
+          warning: '⚠️',
+        };
+
+        toast.innerHTML = `
+          <span style="font-size:18px">${icons[type]}</span>
+          <span style="font-size:14px;color:var(--text-primary)">${message}</span>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.3s';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      };
+
+      // Sidebar collapse sync — always get fresh reference to main-content
+      function applySidebarCollapse(collapsed: boolean) {
+        const main = document.getElementById('main-content');
+        if (!main) return;
+        if (collapsed) {
+          main.classList.add('sidebar-collapsed');
+        } else {
+          main.classList.remove('sidebar-collapsed');
+        }
+      }
+
+      window.addEventListener('sidebar-toggle', (e: any) => {
+        applySidebarCollapse(e.detail?.collapsed);
+      });
+
+      // Re-apply after View Transitions swap (DOM is replaced, class must be restored)
+      document.addEventListener('astro:after-swap', () => {
+        try {
+          const collapsed = localStorage.getItem('ff_sidebar_collapsed') === 'true';
+          applySidebarCollapse(collapsed);
+        } catch {}
+      });
+    </script>
+  </body>
+</html>
